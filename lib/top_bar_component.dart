@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:flame/input.dart';
 
+import 'controllers/audio_controller.dart';
+import 'volume_settings_modal.dart';
+
 
 class TopBarComponent extends PositionComponent with HasGameRef{
 
   late final TextComponent levelText;
-  late final TextComponent settingsButton;
   late final TextComponent movesText;
   late final TextComponent scoreText;
 
@@ -16,7 +18,6 @@ class TopBarComponent extends PositionComponent with HasGameRef{
   int level;
   int movesLeft;
   int score;
-  
 
   TopBarComponent({
     required this.level,
@@ -29,7 +30,7 @@ class TopBarComponent extends PositionComponent with HasGameRef{
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Dòng trên: Back - Level - Settings
+    final context = gameRef.buildContext;
     final backButton = ButtonComponent(
       position: Vector2(10, 10),
       size: Vector2(60, 40),
@@ -43,17 +44,14 @@ class TopBarComponent extends PositionComponent with HasGameRef{
           ),
         ),
       onPressed: () {
-        final context = gameRef.buildContext;
-        if (context != null) {
-          material.Navigator.of(context).pop(); // Quay về màn hình chính
+        AudioController.stopMusic();
+        final contextBack = gameRef.buildContext;
+        if (contextBack != null) {
+          material.Navigator.of(contextBack).pop();
         }
       },
     );
-
-
     add(backButton);
-
-
     levelText = TextComponent(
       text: "Màn: $level",
       anchor: Anchor.topCenter,
@@ -61,16 +59,32 @@ class TopBarComponent extends PositionComponent with HasGameRef{
       textRenderer: TextPaint(style: const TextStyle(fontSize: 20, color: Colors.white)),
     );
     add(levelText);
-
-    settingsButton = TextComponent(
-      text: "⚙",
-      anchor: Anchor.topRight,
-      position: Vector2(size.x - 10, 10),
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 24, color: Colors.white)),
+    final settingsButton = ButtonComponent(
+      position: Vector2(size.x - 40, 10),
+      size: Vector2(30, 30),
+      button: RectangleComponent()
+        ..add(
+          TextComponent(
+            text: "⚙",
+            position: Vector2(0, 0),
+            textRenderer: TextPaint(style: const TextStyle(fontSize: 24, color: Colors.white)),
+          ),
+        ),
+      onPressed: () {
+        final context = gameRef.buildContext;
+        showModalBottomSheet(
+          context: context!,
+          builder: (context) => VolumeSettingsModal(
+            isMenuMusicOn: AudioController.isMusicOn,
+            isGameMusicOn: AudioController.isGameMusicOn,
+            onToggleMenuMusic: AudioController.toggleMenuMusic,
+            onToggleGameMusic: AudioController.toggleGameMusic,
+          )
+        );
+      }
     );
     add(settingsButton);
 
-    // Dòng dưới: Moves - Score
     movesText = TextComponent(
       text: "Lượt: $movesLeft",
       anchor: Anchor.topLeft,

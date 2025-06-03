@@ -1,16 +1,17 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:fruit_match_game/services/level_config.dart';
 import 'fruit_game.dart';
 
 class FruitGameWidget extends StatelessWidget {
-  final int level;
+  final LevelConfig config;
 
-  const FruitGameWidget({super.key, required this.level});
+  const FruitGameWidget({super.key, required this.config});
 
   @override
   Widget build(BuildContext context) {
     return GameWidget(
-      game: FruitGame(level: level), // Truyền game bạn muốn chạy
+      game: FruitGame(config: config), // Truyền game bạn muốn chạy
       overlayBuilderMap: {
         'GameOver': (context, game) {
           return Center(

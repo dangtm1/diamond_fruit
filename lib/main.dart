@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'game_screen.dart';
-import 'main_menu.dart';
+import 'level_select_screen.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
-        '/': (context) => const MainScreen(),        // Màn hình chính
+        '/': (context) => const LevelSelectScreen(),        // Màn hình chính
         '/game': (context) => const GameScreen(),    // Truyền level qua arguments
       },
     );

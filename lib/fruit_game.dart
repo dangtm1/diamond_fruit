@@ -3,12 +3,15 @@ import 'package:flame/camera.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:fruit_match_game/controllers/audio_controller.dart';
+import 'package:fruit_match_game/services/level_config.dart';
 import 'animated_gradient_background.dart';
 import 'fruit_tile.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'game_over_component.dart';
+import 'services/level_storage.dart';
 import 'top_bar_component.dart';
 import 'package:collection/collection.dart';
 late TopBarComponent topBar;
@@ -17,7 +20,6 @@ class FruitGame extends FlameGame with TapDetector {
   final int numRows = 10;
   final int numCols = 7;
   final double tileSize = 48.0;
-  final int maxMoves = 1;
   late List<List<FruitTile?>> grid;
   FruitTile? selectedTile;
   late TextComponent scoreText;
@@ -26,10 +28,9 @@ class FruitGame extends FlameGame with TapDetector {
   int movesLeft = 1;
   late TextComponent movesText;
   bool isAnimating = false;
-  int levelPoint = 40;
-  final int level;
+  final LevelConfig config;
 
-  FruitGame({required this.level});
+  FruitGame({required this.config});
 
   @override
   Future<void> onLoad() async {
@@ -42,16 +43,15 @@ class FruitGame extends FlameGame with TapDetector {
       'orange.png',
     ]);
     add(AnimatedGradientBackground());
-
-    // Đợi có size màn hình
+    movesLeft = config.moves;
     await Future.delayed(Duration.zero);
     generateInitialBoard();
-    topBar = TopBarComponent(level: level, movesLeft: maxMoves, score: 0)
+    topBar = TopBarComponent(level: config.level, movesLeft: config.moves, score: 0)
     ..size = Vector2(size.x, 80)
     ..position = Vector2(0, 20)
     ..priority = 100;
     add(topBar);
-
+    AudioController.playGameMusic();
   }
   
   void generateInitialBoard() {
@@ -114,44 +114,44 @@ class FruitGame extends FlameGame with TapDetector {
   }
 
   void checkGameOverCondition() async {
-    if ((movesLeft <= 0) || (score >= levelPoint)) {
-      // Đợi cho hiệu ứng hoàn tất
+    if ((movesLeft <= 0) || (score >= config.targetScore)) {
       while (isAnimating) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
-
-      // Khi chắc chắn mọi hiệu ứng đã dừng → show Game Over
+      if (score >= config.targetScore) {
+        onLevelCompleted(config.level);
+      }
       final gameOver = GameOverComponent(
         gameSize: size,
-        winner: score >= levelPoint,
+        winner: score >= config.targetScore,
         onReplay: () {
-          // Reset lại game
           resetGame();
         },
         onBack: () {
-          // Quay về màn menu
           Navigator.of(buildContext!).pop();
         },
       );
-    await add(gameOver);
+      await add(gameOver);
+    }
+  }
+
+  void onLevelCompleted(int currentLevel) async {
+    final unlockedLevel = await LevelStorage.getUnlockedLevel();
+    if (currentLevel >= unlockedLevel) {
+      await LevelStorage.setUnlockedLevel(currentLevel + 1);
     }
   }
 
   void resetGame() {
-    // Xoá toàn bộ ô cũ
     children.whereType<FruitTile>().forEach((tile) => tile.removeFromParent());
-
-    // Tạo lại board
     generateInitialBoard();
 
-    // Reset lượt, điểm, v.v...
-    movesLeft = maxMoves;
+    movesLeft = config.moves;
     score = 0;
 
-    topBar.updateMoves(maxMoves);
+    topBar.updateMoves(config.moves);
     topBar.updateScore(0);
 
-    // Xoá màn hình chiến thắng nếu có
     final winner = children.firstWhereOrNull((c) => c is GameOverComponent);
     winner?.removeFromParent();
   }
@@ -164,7 +164,6 @@ class FruitGame extends FlameGame with TapDetector {
   Set<FruitTile> findMatches() {
     final matched = <FruitTile>{};
 
-    // Ngang
     for (int row = 0; row < numRows; row++) {
       int count = 1;
       for (int col = 1; col < numCols; col++) {
@@ -189,7 +188,6 @@ class FruitGame extends FlameGame with TapDetector {
       }
     }
 
-    // Dọc
     for (int col = 0; col < numCols; col++) {
       int count = 1;
       for (int row = 1; row < numRows; row++) {

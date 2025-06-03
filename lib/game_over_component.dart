@@ -68,7 +68,6 @@ class GameOverComponent extends PositionComponent with HasGameRef {
 
     addAll([image, replayButton, backButton]);
   }
-
   PositionComponent _buildButtonBG(String text) {
     final button = PositionComponent(size: Vector2(200, 40));
 
